@@ -7,13 +7,15 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.vectorstores import Pinecone
 import pinecone
 
+from dotenv import load_dotenv, find_dotenv
+_= load_dotenv()
 
 pinecone.init(
     api_key=os.environ["PINECONE_API_KEY"],
     environment=os.environ["PINECONE_ENVIRONMENT_REGION"],
 )
 
-INDEX_NAME = "langchain-doc-index"
+INDEX_NAME = "test-index"
 
 
 def run_llm(query: str, chat_history: List[Dict[str, Any]] = []):
