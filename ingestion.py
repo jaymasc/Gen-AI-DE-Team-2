@@ -1,20 +1,23 @@
 import os
 
-from langchain.document_loaders import ReadTheDocsLoader
+from langchain.document_loaders import TextLoader, DirectoryLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Pinecone
 import pinecone
 
+from dotenv import load_dotenv, find_dotenv
+_= load_dotenv()
+
 pinecone.init(
     api_key=os.environ["PINECONE_API_KEY"],
     environment=os.environ["PINECONE_ENVIRONMENT_REGION"],
 )
-INDEX_NAME = "langchain-doc-index"
+INDEX_NAME = "test-index"
 
 
 def ingest_docs():
-    loader = ReadTheDocsLoader("python.langchain.com/en/latest/index.html")
+    loader = DirectoryLoader(path="knowledge/new", loader_cls=TextLoader)
     raw_documents = loader.load()
     print(f"loaded {len(raw_documents)} documents")
     text_splitter = RecursiveCharacterTextSplitter(
@@ -22,9 +25,7 @@ def ingest_docs():
     )
     documents = text_splitter.split_documents(raw_documents)
     for doc in documents:
-        new_url = doc.metadata["source"]
-        new_url = new_url.replace("langchain-docs", "https:/")
-        doc.metadata.update({"source": new_url})
+        print(doc)
 
     embeddings = OpenAIEmbeddings()
     print(f"Going to add {len(documents)} to Pinecone")
