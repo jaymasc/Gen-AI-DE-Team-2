@@ -16,8 +16,8 @@ pinecone.init(
 INDEX_NAME = "test-index"
 
 
-def ingest_docs():
-    loader = DirectoryLoader(path="knowledge/new", loader_cls=TextLoader)
+def ingest_docs(path: str):
+    loader = DirectoryLoader(path=path, loader_cls=TextLoader)
     raw_documents = loader.load()
     print(f"loaded {len(raw_documents)} documents")
     text_splitter = RecursiveCharacterTextSplitter(
@@ -32,6 +32,14 @@ def ingest_docs():
     Pinecone.from_documents(documents, embeddings, index_name=INDEX_NAME)
     print("****Loading to vectorestore done ***")
 
-
+def remove_all_pinecone_records():
+    index = pinecone.Index(INDEX_NAME)
+    index_description = index.describe_index_stats()
+    print(f"Pinecone index before cleanup: {index_description}")
+    
+    # Note that there will be a delay of several minutes before the Pinecone index is empty
+    index.delete(delete_all=True)   
+    
+    
 if __name__ == "__main__":
-    ingest_docs()
+    ingest_docs("knowledge/policies")
