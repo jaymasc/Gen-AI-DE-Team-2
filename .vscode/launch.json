@@ -8,9 +8,10 @@
         "name": "Python: Current File",
         "type": "python",
         "request": "launch",
-        "program": "${file}",
+        "program": "C:\\Users\\Mertsahin\\AppData\\Local\\Programs\\Python\\Python311\\Scripts\\streamlit.exe",
         "console": "integratedTerminal",
-        "justMyCode": true
+        "justMyCode": true,
+        "args": ["run", "main.py"]
     }
     ]
 }
