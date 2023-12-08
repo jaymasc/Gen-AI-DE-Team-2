@@ -8,8 +8,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import LLMChain
 
 load_dotenv()
-chatbot = ChatOpenAI(api_key=os.environ["OPEN_API_KEY"], model='gpt-3.5-turbo', temperature=0)
-embedding_generator = OpenAIEmbeddings(api_key=os.environ["OPEN_API_KEY"], model="text-embedding-ada-002")
+chatbot = ChatOpenAI(api_key=os.environ["OPENAI_API_KEY"], model='gpt-3.5-turbo', temperature=0)
+embedding_generator = OpenAIEmbeddings(api_key=os.environ["OPENAI_API_KEY"], model="text-embedding-ada-002")
 
 def generate_response(user_input, session_id):
 
