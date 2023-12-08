@@ -6,9 +6,15 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import *
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import LLMChain
+from langchain.utilities import SQLDatabase
+from langchain_experimental.sql import SQLDatabaseChain
+from langchain.llms import OpenAI
 
 load_dotenv()
+db = SQLDatabase.from_uri("sqlite:///starfleet.sqlite")
+
 chatbot = ChatOpenAI(api_key=os.environ["OPENAI_API_KEY"], model='gpt-3.5-turbo', temperature=0)
+
 embedding_generator = OpenAIEmbeddings(api_key=os.environ["OPENAI_API_KEY"], model="text-embedding-ada-002")
 
 def generate_response(user_input, session_id):
@@ -22,18 +28,20 @@ def generate_response(user_input, session_id):
                         
                         Current conversation:
                         {chat_history}
-                        Human: {input}
+                        Human: {query}
                         AI:"""
-
-    prompt = PromptTemplate(input_variables=["input", "chat_history"],template=template)
+                        
+    prompt = PromptTemplate(input_variables=["query", "chat_history"],template=template)
 
     #Getting chat_history_obj for session from Redis
     redis_history = get_chat_history_obj(session_id)
     # Memory setup
     memory = ConversationBufferMemory(memory_key="chat_history", chat_memory=redis_history )
-    # Create the conversation chain
-    chat_chain = LLMChain(llm=chatbot, prompt=prompt, verbose=True, memory=memory)
+    # Create the conversation chain 
+    # chat_chain = SQLDatabaseChain.from_llm(llm=chatbot, db=db, prompt=prompt, verbose=True, memory=memory, top_k=1000)
+    chat_chain = SQLDatabaseChain.from_llm(llm=chatbot, db=db, verbose=True, memory=memory, top_k=1000)
+    
     # After getting response
-    response = chat_chain.run(input=user_input)
+    response = chat_chain.run(query=user_input)
 
     return response
