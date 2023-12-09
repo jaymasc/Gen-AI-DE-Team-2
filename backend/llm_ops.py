@@ -5,7 +5,7 @@ from langchain.chat_models import ChatOpenAI
 from langchain.prompts import *
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import LLMChain
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
 from langchain.chains import StuffDocumentsChain
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.embeddings.openai import OpenAIEmbeddings
@@ -33,11 +33,11 @@ def generate_response(user_input, session_id):
                         Additionally, if the user requests a query that does not match the provided schema or tables, warn them and request a query related to the provided information.
                         
                         Current conversation:
-                        {chat_history}
+                        {context}
                         Human: {question}
                         AI:"""
 
-    prompt = PromptTemplate(input_variables=["question", "chat_history"],template=template)
+    prompt = PromptTemplate(input_variables=["question", "context"],template=template)
 
     embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
     docsearch = Pinecone.from_existing_index(
@@ -51,7 +51,6 @@ def generate_response(user_input, session_id):
     # Memory setup
     memory = ConversationBufferMemory(
         memory_key="chat_history", 
-        output_key='answer', 
         chat_memory=redis_history,
         return_messages=True
     )
@@ -59,16 +58,13 @@ def generate_response(user_input, session_id):
     # Create the conversation chain
     chat_chain = LLMChain(llm=chatbot, prompt=prompt)
     doc_chain = load_qa_with_sources_chain(chatbot, chain_type="stuff")
-
-    qa = ConversationalRetrievalChain(
-        retriever=docsearch.as_retriever(), 
-        question_generator=chat_chain,
-        combine_docs_chain=doc_chain,
-        return_source_documents=True,
-        memory=memory,
-        verbose=True
+    
+    qa = RetrievalQA.from_chain_type(chatbot, 
+                                     retriever=docsearch.as_retriever(), 
+                                     memory=memory,
+                                     chain_type_kwargs={'prompt': prompt}
     )
 
-    return qa({"question": user_input, "chat_history": dbops.get_chat_history_obj(session_id).messages})
+    return qa({"query": user_input})
 
    
