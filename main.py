@@ -39,7 +39,8 @@ user_input = st.chat_input("Type your message here...", key="chat_input")
 if user_input:
     with st.spinner('Generating response...'):
         # Generate response and store chat in Redis
-        bot_response = llm.generate_response(user_input, st.session_state.selected_session)
+        _ = llm.generate_response(user_input, st.session_state.selected_session)
+        # bot_response = llm.generate_response(user_input, st.session_state.selected_session)
 
 # Display chat history for the selected session
 if st.session_state.selected_session:
