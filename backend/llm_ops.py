@@ -1,13 +1,10 @@
 import os
-import backend.db_ops as dbops
+import backend.util as util
 from dotenv import load_dotenv
 from langchain.chat_models import ChatOpenAI
 from langchain.prompts import *
 from langchain.memory import ConversationBufferMemory
-from langchain.chains import LLMChain
-from langchain.chains import ConversationalRetrievalChain, RetrievalQA
-from langchain.chains import StuffDocumentsChain
-from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+from langchain.chains import ConversationalRetrievalChain
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone
 import pinecone
@@ -50,7 +47,7 @@ def generate_response(user_input, session_id):
     )
     
     #Getting chat_history_obj for session from Redis
-    redis_history = dbops.get_chat_history_obj(session_id)
+    redis_history = util.get_chat_history_obj(session_id)
     
     # Memory setup
     memory = ConversationBufferMemory(

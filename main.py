@@ -1,4 +1,4 @@
-import backend.db_ops as dbops  
+import backend.util as util  
 import backend.llm_ops as llm 
 import streamlit as st
 
@@ -10,11 +10,11 @@ if 'session_count' not in st.session_state:
 if 'selected_session' not in st.session_state:
     st.session_state['selected_session'] = None
 
-chat_history =  dbops.get_chat_history_obj( '*' )
+chat_history =  util.get_chat_history_obj( '*' )
 
 #Create the first session "Query 1" if no sessions exist
 if len(st.session_state.chat_sessions) == 0:
-    new_session_id = dbops.generate_session_id()
+    new_session_id = util.generate_session_id()
     st.session_state.session_count += 1
     new_session_name = f'Query {st.session_state.session_count}'
     st.session_state.chat_sessions[new_session_id] = {"session_name": new_session_name}
@@ -22,8 +22,15 @@ if len(st.session_state.chat_sessions) == 0:
 
 # Handle new query creation
 with st.sidebar.title("Text2SQL Generator"):
-    if st.sidebar.button('+ New Query'):
-        new_session_id = dbops.generate_session_id()
+    if st.sidebar.button("Get Insight" ):
+        result = util.get_insights_from_pandas(st.session_state.selected_session)
+        if result == None:
+            st.warning("No chat history found.")
+        else:
+            st.toast(f"User Tone: {result['overall_sentiment']}")
+            st.toast(f"Human Messages: {result['user_message_count']} - LLM Messages: {result['llm_message_count']}")
+    if st.sidebar.button('+ New Query'): 
+        new_session_id = util.generate_session_id()
         st.session_state.session_count += 1
         new_session_name = f'Query {st.session_state.session_count}'
         st.session_state.chat_sessions[new_session_id] = {"session_name": new_session_name}
@@ -44,7 +51,7 @@ if user_input:
 # Display chat history for the selected session
 if st.session_state.selected_session:
     # Getting chat_history_obj for session from Redis
-    chat_history = dbops.get_chat_history_obj(session_id).messages
+    chat_history = util.get_chat_history_obj(session_id).messages
     if chat_history:
         for chat_item in chat_history:
         # Check the type of the chat item and display accordingly
