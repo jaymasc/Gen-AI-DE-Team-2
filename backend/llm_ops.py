@@ -28,16 +28,20 @@ def generate_response(user_input, session_id):
 # Prompt    
     template = """You are a chatbot specialized in generating SQL queries from user inputs. 
                         You understand database schemas and can generate SQL queries based on the provided information.
+                        You also know about Starfleet policies and you can answer questions about those.
                         If the user provides details of a database schema or tables with fields, use this information to create a SQL query based on the user's question.
                         If no database or table details are given, ask the user to provide this information.
                         Additionally, if the user requests a query that does not match the provided schema or tables, warn them and request a query related to the provided information.
+                        If the user asks questions that can be answered from the Starfeet policies, provide the answers
                         
+                        Previous Conversation:
+                        {chat_history}
                         Current conversation:
                         {context}
                         Human: {question}
                         AI:"""
 
-    prompt = PromptTemplate(input_variables=["question", "context"],template=template)
+    prompt = PromptTemplate(input_variables=["question", "context", "chat_history"],template=template)
 
     embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
     docsearch = Pinecone.from_existing_index(
@@ -54,17 +58,14 @@ def generate_response(user_input, session_id):
         chat_memory=redis_history,
         return_messages=True
     )
-    
-    # Create the conversation chain
-    chat_chain = LLMChain(llm=chatbot, prompt=prompt)
-    doc_chain = load_qa_with_sources_chain(chatbot, chain_type="stuff")
-    
-    qa = RetrievalQA.from_chain_type(chatbot, 
-                                     retriever=docsearch.as_retriever(), 
-                                     memory=memory,
-                                     chain_type_kwargs={'prompt': prompt}
-    )
 
-    return qa({"query": user_input})
+    qa = ConversationalRetrievalChain.from_llm(
+        llm=chatbot, 
+        retriever=docsearch.as_retriever(), 
+        memory=memory,
+        combine_docs_chain_kwargs={'prompt': prompt}
+    )
+    
+    return qa({"question": user_input, 'chat_history': redis_history})
 
    

@@ -1,4 +1,5 @@
 import os
+import sys
 
 from langchain.document_loaders import TextLoader, DirectoryLoader
 from langchain.embeddings import OpenAIEmbeddings
@@ -40,6 +41,30 @@ def remove_all_pinecone_records():
     # Note that there will be a delay of several minutes before the Pinecone index is empty
     index.delete(delete_all=True)   
     
-    
-if __name__ == "__main__":
+def setup():
     ingest_docs("knowledge/policies")
+    
+def reset():
+    remove_all_pinecone_records()
+    
+def usage():
+    print("Usage:")
+    print("    ingestion setup // to populate Pinecone with policy documents")
+    print("    ingestion reset // to delete all records from Pinecone")
+            
+if __name__ == "__main__":
+    # Check if a function name is provided as the first argument
+    if len(sys.argv) > 1:
+        function_name = sys.argv[1]
+
+        # Choose and run the selected function based on its name
+        if function_name == "setup":
+            print("Running setup")
+            setup()
+        elif function_name == "reset":
+            print("Running reset")
+            reset()
+        else:
+           usage()
+    else:
+        usage()
