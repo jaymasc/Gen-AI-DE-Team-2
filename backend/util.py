@@ -1,10 +1,13 @@
 import os
 import redis
-from langchain.memory.chat_message_histories import RedisChatMessageHistory
-from dotenv import load_dotenv
 import uuid
 import pandas as pd
+import streamlit as st
+from langchain.memory.chat_message_histories import RedisChatMessageHistory
+from dotenv import load_dotenv
 from textblob import TextBlob
+from streamlit_modal import Modal
+from PIL import Image
 
 # Load environment variables
 load_dotenv()
@@ -45,9 +48,9 @@ def get_insights_from_pandas(session_id):
         
         # Formatting the results into a report
         result = {
-            'overall_sentiment': overall_sentiment, 
-            'user_message_count': user_message_count,
-            'llm_message_count': llm_message_count
+            'User Tone': overall_sentiment, 
+            'Human Messages Count': user_message_count,
+            'Bot Message Count': llm_message_count
         }       
         return result
 
@@ -58,3 +61,19 @@ def categorize_sentiment(sentiment):
         return 'Negative'
     else:
         return 'Neutral'
+    
+def display_logo():
+    return Image.open('app_logo.png')
+
+def display_popup(title,value_tab):
+    modal = Modal(key="Demo Key", title=title, max_width=350)
+    with modal.container():
+        # Initialize an empty string to store the markdown content
+        message = ""
+        # Loop through the result dictionary
+        for key, value in value_tab.items():
+            # Format and append each key-value pair to the markdown content
+            message += f"**{key}:** {value}\n\n"
+        # Display the formatted string in Streamlit's markdown
+        st.markdown(message)
+
