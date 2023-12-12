@@ -6,8 +6,8 @@ from langchain.prompts import *
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.callbacks import get_openai_callback
 from langchain.utilities import SQLDatabase
-from langchain.schema.runnable import RunnablePassthrough
 from langchain.vectorstores import Pinecone
 import pinecone
 

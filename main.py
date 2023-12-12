@@ -51,7 +51,7 @@ if user_input:
 # Display chat history for the selected session
 if st.session_state.selected_session:
     # Getting chat_history_obj for session from Redis
-    chat_history = util.get_chat_history_obj(session_id).messages
+    chat_history = util.get_chat_history_obj(st.session_state.selected_session).messages
     if chat_history:
         for chat_item in chat_history:
         # Check the type of the chat item and display accordingly
