@@ -6,6 +6,8 @@ from langchain.prompts import *
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.utilities import SQLDatabase
+from langchain.schema.runnable import RunnablePassthrough
 from langchain.vectorstores import Pinecone
 import pinecone
 
@@ -18,34 +20,42 @@ pinecone.init(
 
 INDEX_NAME = "test-index"
 
+TEMPLATE = """You are a chatbot specialized in generating SQL queries from user inputs. 
+                You understand database schemas and can generate SQL queries.
+                
+                Here is the schema for the starfleet academy database:
+                {schema}
+                ###
+                You can answer questions and generate sql for the starfleet academy database.
+                You also know about Starfleet policies and you can answer questions about those.  If my question about the policies is vague, you can 
+                give me a summary of what's available
+                
+                You can also help to generate sql for tables that are not in the starfleet database.  Help the user along but be flexible.
+                It's OK to work with partial information.  
+                
+                Previous Conversation:
+                {chat_history}
+                Current conversation:
+                {context}
+                Human: {question}
+                AI:"""
+          
+              
 chatbot = ChatOpenAI(api_key=os.environ["OPENAI_API_KEY"], model='gpt-3.5-turbo', temperature=0)
+
+db = SQLDatabase.from_uri("sqlite:///starfleet.sqlite")
+db_schema = db.get_table_info()
+
+def get_schema():
+    return db_schema
 
 def generate_response(user_input, session_id):
 
-# Prompt    
-    template = """You are a chatbot specialized in generating SQL queries from user inputs. 
-                        You understand database schemas and can generate SQL queries based on the provided information.
-                        You also know about Starfleet policies and you can answer questions about those.
-                        If the user provides details of a database schema or tables with fields, use this information to create a SQL query based on the user's question.
-                        If no database or table details are given, ask the user to provide this information.
-                        Additionally, if the user requests a query that does not match the provided schema or tables, warn them and request a query related to the provided information.
-                        If the user asks questions that can be answered from the Starfeet policies, provide the answers
-                        
-                        Previous Conversation:
-                        {chat_history}
-                        Current conversation:
-                        {context}
-                        Human: {question}
-                        AI:"""
-
-    prompt = PromptTemplate(input_variables=["question", "context", "chat_history"],template=template)
-
-    embeddings = OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"])
     docsearch = Pinecone.from_existing_index(
-        embedding=embeddings,
+        embedding=OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]),
         index_name=INDEX_NAME,
     )
-    
+        
     #Getting chat_history_obj for session from Redis
     redis_history = util.get_chat_history_obj(session_id)
     
@@ -56,13 +66,19 @@ def generate_response(user_input, session_id):
         return_messages=True
     )
 
-    qa = ConversationalRetrievalChain.from_llm(
+    prompt = PromptTemplate(
+        input_variables=["question", "context", "chat_history"], 
+        partial_variables={"schema": get_schema},
+        template=TEMPLATE
+    )
+    
+    chain = ConversationalRetrievalChain.from_llm(
         llm=chatbot, 
         retriever=docsearch.as_retriever(), 
         memory=memory,
         combine_docs_chain_kwargs={'prompt': prompt}
     )
     
-    return qa({"question": user_input, 'chat_history': redis_history})
+    return chain({"question": user_input, 'chat_history': redis_history})
 
    
