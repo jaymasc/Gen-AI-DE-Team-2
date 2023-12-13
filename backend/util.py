@@ -8,27 +8,35 @@ from dotenv import load_dotenv
 from textblob import TextBlob
 from streamlit_modal import Modal
 from PIL import Image
+import logging
+
+# Setting up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Load environment variables
 load_dotenv()
+logging.info('Loaded environment variables')
 
 # Setting up Redis connection
 redis_client = redis.Redis(host=os.environ["REDIS_HOST"], port=os.environ["REDIS_PORT"], password=os.environ["REDIS_PASSWORD"], decode_responses=True)
+logging.info('Redis connection established')
 
 def generate_session_id():
+    logging.info('Generating new session ID')
     return str(uuid.uuid4())  # Generate a UUID as a session ID
 
 def get_chat_history_obj(session_id):
-    return RedisChatMessageHistory( url=os.environ["REDIS_URL"], session_id=session_id )
+    logging.info(f'Retrieving chat history for session ID: {session_id}')
+    return RedisChatMessageHistory(url=os.environ["REDIS_URL"], session_id=session_id)
  
 def get_insights_from_pandas(session_id):
+    logging.info(f'Getting insights from pandas for session ID: {session_id}')
     chat_data = []
     chat_history = get_chat_history_obj(session_id).messages
-    last_human_timestamp = None
 
     if chat_history:
+        logging.info('Processing chat history for insights')
         for message in chat_history:
-
             chat_data.append({
                 'session_id': session_id,
                 'message_type': message.type,  # 'human' or 'assistant'
@@ -55,6 +63,7 @@ def get_insights_from_pandas(session_id):
         return result
 
 def categorize_sentiment(sentiment):
+    logging.info('Categorizing sentiment')
     if sentiment > 0.2:
         return 'Positive'
     elif sentiment < -0.2:
@@ -63,17 +72,14 @@ def categorize_sentiment(sentiment):
         return 'Neutral'
     
 def display_logo():
+    logging.info('Displaying logo')
     return Image.open('app_logo.png')
 
-def display_popup(title,value_tab):
+def display_popup(title, value_tab):
+    logging.info(f'Displaying popup: {title}')
     modal = Modal(key="Demo Key", title=title, max_width=350)
     with modal.container():
-        # Initialize an empty string to store the markdown content
         message = ""
-        # Loop through the result dictionary
         for key, value in value_tab.items():
-            # Format and append each key-value pair to the markdown content
             message += f"**{key}:** {value}\n\n"
-        # Display the formatted string in Streamlit's markdown
         st.markdown(message)
-
