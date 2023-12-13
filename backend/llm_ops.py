@@ -10,6 +10,7 @@ from langchain.callbacks import get_openai_callback
 from langchain.utilities import SQLDatabase
 from langchain.vectorstores import Pinecone
 import pinecone
+import logging
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
