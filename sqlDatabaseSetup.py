@@ -1,5 +1,6 @@
 import sqlite3
 
+# Create an sqlite database by reading sql commands from the provided .sql file
 def create_database(sql_file_path, db_file_path):
     # Connect to the new SQLite database file
     # If the file doesn't exist, SQLite will create it
@@ -18,6 +19,7 @@ def create_database(sql_file_path, db_file_path):
     finally:
         conn.close()
 
+# Performs a test query of a hard coded sql statement given the path to an sqlite db
 def query_database(db_file_path):
     # Connect to the SQLite database
     conn = sqlite3.connect(db_file_path)
@@ -28,6 +30,7 @@ def query_database(db_file_path):
     # Query: Select data from a table (e.g., Album)
     query = "SELECT * FROM students"
 
+    # Execute the sql query
     try:
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -43,5 +46,6 @@ def query_database(db_file_path):
 sql_file_path = 'knowledge/schema/starfleet-sqlite.sql'  # Update this to the path of your .sql file
 db_file_path = 'starfleet.sqlite'  # The SQLite file to be created
 
+# Create our sample sqlite databaase and perform a test read
 create_database(sql_file_path, db_file_path)
 query_database(db_file_path=db_file_path)
