@@ -1,3 +1,8 @@
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
 import os
 import sys
 
@@ -23,11 +28,12 @@ INDEX_NAME = "test-index"
 # Function to load documents into the Pinecone vector store given a path to the directory
 # containing those documents
 def ingest_docs(path: str):
+    logging.info('Executing function: ingest_docs')
     loader = DirectoryLoader(path=path, loader_cls=TextLoader)
     raw_documents = loader.load()
     print(f"loaded {len(raw_documents)} documents")
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=400, chunk_overlap=50, separators=["\n\n", "\n", " ", ""]
+        chunk_size=400, chunk_overlap=50, separators=["\\n\\n", "\\n", " ", ""]
     )
     documents = text_splitter.split_documents(raw_documents)
     for doc in documents:
@@ -40,6 +46,7 @@ def ingest_docs(path: str):
 
 # Convenience function to remove all documents from the vectore store
 def remove_all_pinecone_records():
+    logging.info('Executing function: remove_all_pinecone_records')
     index = pinecone.Index(INDEX_NAME)
     index_description = index.describe_index_stats()
     print(f"Pinecone index before cleanup: {index_description}")
@@ -49,14 +56,17 @@ def remove_all_pinecone_records():
     
 # Function used to enable loading the initial docs into the vector store by triggering from the command line
 def setup():
+    logging.info('Executing function: setup')
     ingest_docs("knowledge/policies")
     
 # Function used to enable removng all docs from the vector store by triggering from the command line
 def reset():
+    logging.info('Executing function: reset')
     remove_all_pinecone_records()
     
 # Function to print out the command line usage instructions in case the user makes an error typing the command
 def usage():
+    logging.info('Executing function: usage')
     print("Usage:")
     print("    ingestion setup // to populate Pinecone with policy documents")
     print("    ingestion reset // to delete all records from Pinecone")
