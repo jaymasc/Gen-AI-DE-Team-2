@@ -11,14 +11,19 @@ from langchain.utilities import SQLDatabase
 from langchain.vectorstores import Pinecone
 import pinecone
 
+# Setting up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Load environment variables from a .env file
 load_dotenv()
+logging.info('Loaded environment variables')
 
 # Initialize Pinecone with API key and environment settings from .env file
 pinecone.init(
     api_key=os.environ["PINECONE_API_KEY"],
     environment=os.environ["PINECONE_ENVIRONMENT_REGION"],
 )
+logging.info('Pinecone initialized')
 
 # Define a constant for the Pinecone index name
 INDEX_NAME = "test-index"
@@ -47,10 +52,12 @@ TEMPLATE = """You are a chatbot specialized in generating SQL queries from user 
               
 # Initialize the ChatOpenAI model with API key and model specifications
 chatbot = ChatOpenAI(api_key=os.environ["OPENAI_API_KEY"], model='gpt-3.5-turbo', temperature=0)
+logging.info('ChatOpenAI model initialized')
 
 # Create a connection to the SQL database and retrieve the schema
 db = SQLDatabase.from_uri("sqlite:///starfleet.sqlite")
 db_schema = db.get_table_info()
+logging.info('SQL database schema retrieved')
 
 # Function to return the database schema
 def get_schema():
@@ -58,14 +65,17 @@ def get_schema():
 
 # Function to generate a response based on user input and session ID
 def generate_response(user_input, session_id):
+    logging.info(f'Generating response for session ID: {session_id}')
     # Initialize Pinecone vector store with the OpenAI embeddings
     docsearch = Pinecone.from_existing_index(
         embedding=OpenAIEmbeddings(openai_api_key=os.environ["OPENAI_API_KEY"]),
         index_name=INDEX_NAME,
     )
+    logging.info('Pinecone vector store initialized')
         
     # Retrieve chat history from Redis for the current session
     redis_history = util.get_chat_history_obj(session_id)
+    logging.info('Chat history retrieved from Redis')
     
     # Initialize memory for conversation context
     memory = ConversationBufferMemory(
@@ -73,6 +83,7 @@ def generate_response(user_input, session_id):
         chat_memory=redis_history,
         return_messages=True
     )
+    logging.info('Conversation memory initialized')
 
     # Set up the prompt template with input variables and the chatbot template
     prompt = PromptTemplate(
@@ -81,15 +92,17 @@ def generate_response(user_input, session_id):
         template=TEMPLATE
     )
     
-    # Create a conversational retrieval chain with the chat model, document retriever, and memory
+     # Create a conversational retrieval chain with the chat model, document retriever, and memory
     chain = ConversationalRetrievalChain.from_llm(
         llm=chatbot, 
         retriever=docsearch.as_retriever(), 
         memory=memory,
         combine_docs_chain_kwargs={'prompt': prompt}
     )
+    logging.info('Conversational retrieval chain created')
 
     with get_openai_callback() as cb:
+        logging.info('Executing the conversational retrieval chain')
         chain({"question": user_input, 'chat_history': redis_history})
         # Populate the log with token and cost details
         log = {
@@ -97,7 +110,7 @@ def generate_response(user_input, session_id):
             'Prompt Tokens': cb.prompt_tokens,
             'Completion Tokens': cb.completion_tokens,
             'Total Cost(USD)': cb.total_cost
-        }          
+        }
+        logging.info(f'Response generated. Total Tokens: {cb.total_tokens}, Total Cost(USD): {cb.total_cost}')         
     # Return the generated response based on the input question and chat history
     return log
-   
