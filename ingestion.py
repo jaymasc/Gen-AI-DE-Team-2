@@ -1,91 +1,73 @@
-import logging
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-
 import os
 import sys
-
+import logging
+import time
 from langchain.document_loaders import TextLoader, DirectoryLoader
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Pinecone
 import pinecone
+from dotenv import load_dotenv
 
-# load our environment variables
-from dotenv import load_dotenv, find_dotenv
-_= load_dotenv()
+# Set up logging and environment variables
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+load_dotenv()
 
-# initialize our access to the Pinecone vector store
+# Initialize Pinecone vector store
 pinecone.init(
     api_key=os.environ["PINECONE_API_KEY"],
     environment=os.environ["PINECONE_ENVIRONMENT_REGION"],
 )
+logging.info('Pinecone initialized')
 
-# We're assuming the vector store has a specifically named index
+# Named index for the Pinecone vector store
 INDEX_NAME = "test-index"
 
-# Function to load documents into the Pinecone vector store given a path to the directory
-# containing those documents
 def ingest_docs(path: str):
-    logging.info('Executing function: ingest_docs')
+    logging.info('Starting document ingestion')
+    start_time = time.time()
     loader = DirectoryLoader(path=path, loader_cls=TextLoader)
     raw_documents = loader.load()
-    print(f"loaded {len(raw_documents)} documents")
+    logging.info(f"Loaded {len(raw_documents)} documents")
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=400, chunk_overlap=50, separators=["\\n\\n", "\\n", " ", ""]
     )
     documents = text_splitter.split_documents(raw_documents)
-    for doc in documents:
-        print(doc)
-
     embeddings = OpenAIEmbeddings()
-    print(f"Going to add {len(documents)} to Pinecone")
     Pinecone.from_documents(documents, embeddings, index_name=INDEX_NAME)
-    print("****Loading to vectorestore done ***")
+    elapsed_time = time.time() - start_time
+    logging.info(f"Document ingestion completed in {elapsed_time:.2f} seconds")
 
-# Convenience function to remove all documents from the vectore store
 def remove_all_pinecone_records():
-    logging.info('Executing function: remove_all_pinecone_records')
+    logging.info('Starting removal of all documents from Pinecone')
+    start_time = time.time()
     index = pinecone.Index(INDEX_NAME)
-    index_description = index.describe_index_stats()
-    print(f"Pinecone index before cleanup: {index_description}")
-    
-    # Note that there will be a delay of several minutes before the Pinecone index is empty
-    index.delete(delete_all=True)   
-    
-# Function used to enable loading the initial docs into the vector store by triggering from the command line
+    index.delete(delete_all=True)
+    elapsed_time = time.time() - start_time
+    logging.info(f"All documents removed from Pinecone in {elapsed_time:.2f} seconds")
+
 def setup():
-    logging.info('Executing function: setup')
+    logging.info('Running setup function')
     ingest_docs("knowledge/policies")
-    
-# Function used to enable removng all docs from the vector store by triggering from the command line
+
 def reset():
-    logging.info('Executing function: reset')
+    logging.info('Running reset function')
     remove_all_pinecone_records()
-    
-# Function to print out the command line usage instructions in case the user makes an error typing the command
+
 def usage():
-    logging.info('Executing function: usage')
+    logging.info('Displaying usage instructions')
     print("Usage:")
     print("    ingestion setup // to populate Pinecone with policy documents")
     print("    ingestion reset // to delete all records from Pinecone")
-            
-# This file is meant to be run as a standalone from the command line prior to using the main.py app
-# The purpose of this script is to pre-load some sample 'Policy' documents into a Pinecone vector store
+
 if __name__ == "__main__":
-    # Check if a function name is provided as the first argument
     if len(sys.argv) > 1:
         function_name = sys.argv[1]
-
-        # Choose and run the selected function based on its name
         if function_name == "setup":
-            print("Running setup")
             setup()
         elif function_name == "reset":
-            print("Running reset")
             reset()
         else:
-           usage()
+            usage()
     else:
         usage()
