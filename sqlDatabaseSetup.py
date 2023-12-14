@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+import time
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -7,6 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Create an sqlite database by reading sql commands from the provided .sql file
 def create_database(sql_file_path, db_file_path):
     logging.info(f'Creating database using {sql_file_path}')
+    start_time = time.time()
     # Connect to the new SQLite database file
     # If the file doesn't exist, SQLite will create it
     conn = sqlite3.connect(db_file_path)
@@ -23,10 +25,13 @@ def create_database(sql_file_path, db_file_path):
         logging.error(f"An error occurred: {e.args[0]}")
     finally:
         conn.close()
+    elapsed_time = time.time() - start_time
+    logging.info(f"Database creation took {elapsed_time:.2f} seconds")
 
 # Performs a test query of a hard coded sql statement given the path to an sqlite db
 def query_database(db_file_path):
     logging.info(f'Querying database at {db_file_path}')
+    start_time = time.time()
     # Connect to the SQLite database
     conn = sqlite3.connect(db_file_path)
 
@@ -47,6 +52,8 @@ def query_database(db_file_path):
     finally:
         cursor.close()
         conn.close()
+    elapsed_time = time.time() - start_time
+    logging.info(f"Query execution took {elapsed_time:.2f} seconds")
         
 # Paths
 sql_file_path = 'knowledge/schema/starfleet-sqlite.sql'  # Update this to the path of your .sql file
@@ -55,4 +62,3 @@ db_file_path = 'starfleet.sqlite'  # The SQLite file to be created
 # Create our sample sqlite database and perform a test read
 create_database(sql_file_path, db_file_path)
 query_database(db_file_path=db_file_path)
-
